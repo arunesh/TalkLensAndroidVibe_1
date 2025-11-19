@@ -23,6 +23,7 @@ import com.talkbox.docs.talklens.feature.camera.CameraScreen
 import com.talkbox.docs.talklens.feature.gallery.GalleryScreen
 import com.talkbox.docs.talklens.feature.settings.SettingsScreen
 import com.talkbox.docs.talklens.feature.setup.SetupScreen
+import com.talkbox.docs.talklens.feature.translation.MultiPageTranslationScreen
 import com.talkbox.docs.talklens.feature.translation.TranslationScreen
 import kotlinx.coroutines.launch
 
@@ -94,14 +95,22 @@ fun TalkLensApp(
                         }
                     )
                 },
-                cameraScreen = { onNavigateToTranslation ->
-                    CameraScreen(onNavigateToTranslation = onNavigateToTranslation)
+                cameraScreen = { onNavigateToTranslation, onNavigateToMultiPageTranslation ->
+                    CameraScreen(
+                        onNavigateToTranslation = onNavigateToTranslation,
+                        onNavigateToMultiPageTranslation = onNavigateToMultiPageTranslation
+                    )
                 },
                 galleryScreen = { GalleryScreen() },
                 settingsScreen = { SettingsScreen() },
                 translationScreen = { sourceText, onNavigateBack ->
                     TranslationScreen(
                         sourceText = sourceText,
+                        onNavigateBack = onNavigateBack
+                    )
+                },
+                multiPageTranslationScreen = { onNavigateBack ->
+                    MultiPageTranslationScreen(
                         onNavigateBack = onNavigateBack
                     )
                 }

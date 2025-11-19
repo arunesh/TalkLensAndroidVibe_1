@@ -21,6 +21,13 @@ sealed class TalkLensDestination(val route: String) {
             return "translation/$encoded"
         }
     }
+
+    // Multi-page translation screen
+    data object MultiPageTranslation : TalkLensDestination("multipage_translation/{documentId}") {
+        fun createRoute(documentId: String): String {
+            return "multipage_translation/$documentId"
+        }
+    }
 }
 
 /**

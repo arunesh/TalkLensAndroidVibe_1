@@ -17,9 +17,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.Pages
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -58,11 +60,14 @@ import com.talkbox.docs.talklens.core.designsystem.component.TalkLensSecondaryBu
 @Composable
 fun CameraScreen(
     onNavigateToTranslation: (String) -> Unit,
+    onNavigateToMultiPageTranslation: (String) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: CameraViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val flashEnabled by viewModel.flashEnabled.collectAsStateWithLifecycle()
+    val multiPageMode by viewModel.multiPageMode.collectAsStateWithLifecycle()
+    val currentDocument by viewModel.currentDocument.collectAsStateWithLifecycle()
 
     val cameraPermissionState = rememberPermissionState(
         permission = Manifest.permission.CAMERA
@@ -77,7 +82,12 @@ fun CameraScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Scan Document") }
+                title = {
+                    Text(
+                        if (multiPageMode) "Multi-Page Scan"
+                        else "Scan Document"
+                    )
+                }
             )
         },
         modifier = modifier
@@ -94,6 +104,22 @@ fun CameraScreen(
                     )
                 }
 
+                uiState is CameraUiState.MultiPageCapture -> {
+                    val multiPageState = uiState as CameraUiState.MultiPageCapture
+                    MultiPageCaptureContent(
+                        document = multiPageState.document,
+                        flashEnabled = flashEnabled,
+                        onToggleFlash = viewModel::toggleFlash,
+                        onImageCaptured = viewModel::onImageCaptured,
+                        onDeletePage = viewModel::deletePage,
+                        onContinueCapturing = viewModel::continueCapturing,
+                        onFinishCapture = {
+                            val documentId = multiPageState.document.id
+                            onNavigateToMultiPageTranslation(documentId)
+                        }
+                    )
+                }
+
                 uiState is CameraUiState.Success -> {
                     val successState = uiState as CameraUiState.Success
                     RecognitionResultScreen(
@@ -103,7 +129,8 @@ fun CameraScreen(
                         onRetake = viewModel::retryCapture,
                         onUseText = {
                             onNavigateToTranslation(successState.recognizedText.text)
-                        }
+                        },
+                        onEnableMultiPage = viewModel::enableMultiPageMode
                     )
                 }
 
@@ -123,7 +150,8 @@ fun CameraScreen(
                     CameraContent(
                         flashEnabled = flashEnabled,
                         onToggleFlash = viewModel::toggleFlash,
-                        onImageCaptured = viewModel::onImageCaptured
+                        onImageCaptured = viewModel::onImageCaptured,
+                        onEnableMultiPage = viewModel::enableMultiPageMode
                     )
                 }
             }
@@ -135,7 +163,8 @@ fun CameraScreen(
 private fun CameraContent(
     flashEnabled: Boolean,
     onToggleFlash: () -> Unit,
-    onImageCaptured: (android.graphics.Bitmap) -> Unit
+    onImageCaptured: (android.graphics.Bitmap) -> Unit,
+    onEnableMultiPage: () -> Unit
 ) {
     val context = LocalContext.current
     val imageCaptureHolder = remember { ImageCaptureHolder() }
@@ -157,8 +186,24 @@ private fun CameraContent(
                 .fillMaxWidth()
                 .padding(16.dp)
                 .align(Alignment.TopEnd),
-            horizontalArrangement = Arrangement.End
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
         ) {
+            // Multi-page mode button
+            IconButton(
+                onClick = onEnableMultiPage,
+                modifier = Modifier
+                    .background(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                        CircleShape
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Pages,
+                    contentDescription = "Multi-page mode"
+                )
+            }
+
+            // Flash toggle
             IconButton(
                 onClick = onToggleFlash,
                 modifier = Modifier
@@ -221,7 +266,8 @@ private fun RecognitionResultScreen(
     recognizedText: String,
     confidence: Float,
     onRetake: () -> Unit,
-    onUseText: () -> Unit
+    onUseText: () -> Unit,
+    onEnableMultiPage: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -275,6 +321,21 @@ private fun RecognitionResultScreen(
         }
 
         Spacer(modifier = Modifier.weight(1f))
+
+        // Multi-page option
+        TalkLensSecondaryButton(
+            onClick = onEnableMultiPage,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = null
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Add More Pages")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Actions
         Row(
@@ -342,6 +403,102 @@ private fun ErrorContent(
 
         TalkLensPrimaryButton(onClick = onRetry) {
             Text("Try Again")
+        }
+    }
+}
+
+@Composable
+private fun MultiPageCaptureContent(
+    document: com.talkbox.docs.talklens.domain.model.MultiPageDocument,
+    flashEnabled: Boolean,
+    onToggleFlash: () -> Unit,
+    onImageCaptured: (android.graphics.Bitmap) -> Unit,
+    onDeletePage: (String) -> Unit,
+    onContinueCapturing: () -> Unit,
+    onFinishCapture: () -> Unit
+) {
+    val context = LocalContext.current
+    val imageCaptureHolder = remember { ImageCaptureHolder() }
+    val executor = remember { ContextCompat.getMainExecutor(context) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Camera preview
+        CameraPreview(
+            modifier = Modifier.fillMaxSize(),
+            flashEnabled = flashEnabled,
+            onImageCaptured = onImageCaptured,
+            onError = { /* Handle error */ },
+            imageCaptureUseCase = imageCaptureHolder
+        )
+
+        // Top controls
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .align(Alignment.TopEnd),
+            horizontalArrangement = Arrangement.End
+        ) {
+            IconButton(
+                onClick = onToggleFlash,
+                modifier = Modifier
+                    .background(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                        CircleShape
+                    )
+            ) {
+                Icon(
+                    imageVector = if (flashEnabled) Icons.Default.FlashOn else Icons.Default.FlashOff,
+                    contentDescription = if (flashEnabled) "Flash On" else "Flash Off"
+                )
+            }
+        }
+
+        // Bottom section with thumbnails and controls
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Thumbnail strip
+            if (document.pages.isNotEmpty()) {
+                PageThumbnailStrip(
+                    pages = document.pages,
+                    onPageClick = { /* Could show preview */ },
+                    onDeletePage = onDeletePage
+                )
+            }
+
+            // Page counter and controls
+            PageCounterControls(
+                pageCount = document.pageCount,
+                onAddMorePages = onContinueCapturing,
+                onFinishCapture = onFinishCapture
+            )
+        }
+
+        // Capture button (when idle)
+        FloatingActionButton(
+            onClick = {
+                captureImage(
+                    imageCapture = imageCaptureHolder.imageCapture,
+                    executor = executor,
+                    onImageCaptured = onImageCaptured,
+                    onError = { /* Handle error */ }
+                )
+            },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = if (document.pages.isEmpty()) 32.dp else 240.dp)
+                .size(72.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.CameraAlt,
+                contentDescription = "Capture",
+                modifier = Modifier.size(32.dp)
+            )
         }
     }
 }

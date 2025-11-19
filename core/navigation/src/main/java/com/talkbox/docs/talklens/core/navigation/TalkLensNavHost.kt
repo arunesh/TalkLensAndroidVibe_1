@@ -14,10 +14,14 @@ fun TalkLensNavHost(
     startDestination: String,
     modifier: Modifier = Modifier,
     setupScreen: @Composable () -> Unit = {},
-    cameraScreen: @Composable (onNavigateToTranslation: (String) -> Unit) -> Unit = {},
+    cameraScreen: @Composable (
+        onNavigateToTranslation: (String) -> Unit,
+        onNavigateToMultiPageTranslation: (String) -> Unit
+    ) -> Unit = { _, _ -> },
     galleryScreen: @Composable () -> Unit = {},
     settingsScreen: @Composable () -> Unit = {},
-    translationScreen: @Composable (String, () -> Unit) -> Unit = { _, _ -> }
+    translationScreen: @Composable (String, () -> Unit) -> Unit = { _, _ -> },
+    multiPageTranslationScreen: @Composable (() -> Unit) -> Unit = {}
 ) {
     NavHost(
         navController = navController,
@@ -31,9 +35,14 @@ fun TalkLensNavHost(
 
         // Main tabs
         composable(TalkLensDestination.Camera.route) {
-            cameraScreen { sourceText ->
-                navController.navigate(TalkLensDestination.Translation.createRoute(sourceText))
-            }
+            cameraScreen(
+                onNavigateToTranslation = { sourceText ->
+                    navController.navigate(TalkLensDestination.Translation.createRoute(sourceText))
+                },
+                onNavigateToMultiPageTranslation = { documentId ->
+                    navController.navigate(TalkLensDestination.MultiPageTranslation.createRoute(documentId))
+                }
+            )
         }
 
         composable(TalkLensDestination.Gallery.route) {
@@ -49,6 +58,13 @@ fun TalkLensNavHost(
             val encodedText = backStackEntry.arguments?.getString("sourceText") ?: ""
             val sourceText = java.net.URLDecoder.decode(encodedText, "UTF-8")
             translationScreen(sourceText) {
+                navController.popBackStack()
+            }
+        }
+
+        // Multi-page translation screen
+        composable(TalkLensDestination.MultiPageTranslation.route) {
+            multiPageTranslationScreen {
                 navController.popBackStack()
             }
         }
