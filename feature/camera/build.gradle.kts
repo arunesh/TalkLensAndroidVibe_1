@@ -70,6 +70,9 @@ dependencies {
     // Coil for image loading
     implementation(libs.coil.compose)
 
+    // Accompanist for permissions
+    implementation(libs.accompanist.permissions)
+
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 
