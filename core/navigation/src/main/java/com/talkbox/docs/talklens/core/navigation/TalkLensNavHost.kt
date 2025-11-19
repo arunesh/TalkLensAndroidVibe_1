@@ -18,7 +18,10 @@ fun TalkLensNavHost(
         onNavigateToTranslation: (String) -> Unit,
         onNavigateToMultiPageTranslation: (String) -> Unit
     ) -> Unit = { _, _ -> },
-    galleryScreen: @Composable () -> Unit = {},
+    galleryScreen: @Composable (
+        onNavigateToTranslation: (String) -> Unit,
+        onNavigateToMultiPageTranslation: (String) -> Unit
+    ) -> Unit = { _, _ -> },
     settingsScreen: @Composable () -> Unit = {},
     translationScreen: @Composable (String, () -> Unit) -> Unit = { _, _ -> },
     multiPageTranslationScreen: @Composable (() -> Unit) -> Unit = {}
@@ -46,7 +49,14 @@ fun TalkLensNavHost(
         }
 
         composable(TalkLensDestination.Gallery.route) {
-            galleryScreen()
+            galleryScreen(
+                onNavigateToTranslation = { sourceText ->
+                    navController.navigate(TalkLensDestination.Translation.createRoute(sourceText))
+                },
+                onNavigateToMultiPageTranslation = { documentId ->
+                    navController.navigate(TalkLensDestination.MultiPageTranslation.createRoute(documentId))
+                }
+            )
         }
 
         composable(TalkLensDestination.Settings.route) {

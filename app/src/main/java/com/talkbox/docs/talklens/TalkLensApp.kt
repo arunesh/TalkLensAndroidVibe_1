@@ -101,7 +101,12 @@ fun TalkLensApp(
                         onNavigateToMultiPageTranslation = onNavigateToMultiPageTranslation
                     )
                 },
-                galleryScreen = { GalleryScreen() },
+                galleryScreen = { onNavigateToTranslation, onNavigateToMultiPageTranslation ->
+                    GalleryScreen(
+                        onNavigateToTranslation = onNavigateToTranslation,
+                        onNavigateToMultiPageTranslation = onNavigateToMultiPageTranslation
+                    )
+                },
                 settingsScreen = { SettingsScreen() },
                 translationScreen = { sourceText, onNavigateBack ->
                     TranslationScreen(

@@ -1,7 +1,9 @@
 package com.talkbox.docs.talklens.data.di
 
+import com.talkbox.docs.talklens.data.repository.FileImportRepositoryImpl
 import com.talkbox.docs.talklens.data.repository.TextRecognitionRepositoryImpl
 import com.talkbox.docs.talklens.data.repository.TranslationRepositoryImpl
+import com.talkbox.docs.talklens.domain.repository.FileImportRepository
 import com.talkbox.docs.talklens.domain.repository.TextRecognitionRepository
 import com.talkbox.docs.talklens.domain.repository.TranslationRepository
 import dagger.Binds
@@ -28,4 +30,10 @@ abstract class RepositoryModule {
     abstract fun bindTranslationRepository(
         impl: TranslationRepositoryImpl
     ): TranslationRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindFileImportRepository(
+        impl: FileImportRepositoryImpl
+    ): FileImportRepository
 }
