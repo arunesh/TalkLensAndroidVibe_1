@@ -14,10 +14,10 @@ fun TalkLensNavHost(
     startDestination: String,
     modifier: Modifier = Modifier,
     setupScreen: @Composable () -> Unit = {},
-    cameraScreen: @Composable () -> Unit = {},
+    cameraScreen: @Composable (onNavigateToTranslation: (String) -> Unit) -> Unit = {},
     galleryScreen: @Composable () -> Unit = {},
     settingsScreen: @Composable () -> Unit = {},
-    translationResultScreen: @Composable (String) -> Unit = {}
+    translationScreen: @Composable (String, () -> Unit) -> Unit = { _, _ -> }
 ) {
     NavHost(
         navController = navController,
@@ -31,7 +31,9 @@ fun TalkLensNavHost(
 
         // Main tabs
         composable(TalkLensDestination.Camera.route) {
-            cameraScreen()
+            cameraScreen { sourceText ->
+                navController.navigate(TalkLensDestination.Translation.createRoute(sourceText))
+            }
         }
 
         composable(TalkLensDestination.Gallery.route) {
@@ -42,10 +44,13 @@ fun TalkLensNavHost(
             settingsScreen()
         }
 
-        // Translation result screen
-        composable(TalkLensDestination.TranslationResult.route) { backStackEntry ->
-            val documentId = backStackEntry.arguments?.getString("documentId") ?: ""
-            translationResultScreen(documentId)
+        // Translation screen
+        composable(TalkLensDestination.Translation.route) { backStackEntry ->
+            val encodedText = backStackEntry.arguments?.getString("sourceText") ?: ""
+            val sourceText = java.net.URLDecoder.decode(encodedText, "UTF-8")
+            translationScreen(sourceText) {
+                navController.popBackStack()
+            }
         }
     }
 }

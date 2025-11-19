@@ -13,9 +13,13 @@ sealed class TalkLensDestination(val route: String) {
     data object Gallery : TalkLensDestination("gallery")
     data object Settings : TalkLensDestination("settings")
 
-    // Translation results (shared across features)
-    data object TranslationResult : TalkLensDestination("translation_result/{documentId}") {
-        fun createRoute(documentId: String) = "translation_result/$documentId"
+    // Translation screen
+    data object Translation : TalkLensDestination("translation/{sourceText}") {
+        fun createRoute(sourceText: String): String {
+            // URL encode the text to handle special characters
+            val encoded = java.net.URLEncoder.encode(sourceText, "UTF-8")
+            return "translation/$encoded"
+        }
     }
 }
 

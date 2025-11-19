@@ -57,6 +57,7 @@ import com.talkbox.docs.talklens.core.designsystem.component.TalkLensSecondaryBu
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun CameraScreen(
+    onNavigateToTranslation: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: CameraViewModel = hiltViewModel()
 ) {
@@ -101,7 +102,7 @@ fun CameraScreen(
                         confidence = successState.recognizedText.confidence,
                         onRetake = viewModel::retryCapture,
                         onUseText = {
-                            // TODO: Navigate to translation screen
+                            onNavigateToTranslation(successState.recognizedText.text)
                         }
                     )
                 }
